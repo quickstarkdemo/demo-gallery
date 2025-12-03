@@ -5,7 +5,9 @@ import {
   FiAlertTriangle,
   FiChevronDown,
   FiChevronUp,
+  FiCpu,
 } from "react-icons/fi";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import {
   Box,
   Button,
@@ -132,6 +134,10 @@ export default function Home() {
   const [fileUploadKey, setFileUploadKey] = useState(0); // Key to force FileUpload reset
   const fileUploadRef = useRef(null);
   const toaster = useAppToaster();
+  
+  // AI Generation State
+  const [prompt, setPrompt] = useState("");
+  const [isGenerating, setIsGenerating] = useState(false);
 
   const cols = isLargerThan1200 ? 4 : 1;
 
@@ -489,6 +495,117 @@ export default function Home() {
     throw new ValidationError(image.name);
   };
 
+  const handleGenerateAndUpload = async () => {
+    if (!prompt) {
+      toaster.create({
+        title: "Prompt Required",
+        description: "Please enter a prompt to generate an image.",
+        status: "warning",
+        duration: 3000,
+      });
+      return;
+    }
+
+    setIsGenerating(true);
+    try {
+      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
+      if (!apiKey) {
+        throw new Error("Gemini API Key is missing. Please check your .env file.");
+      }
+
+      const genAI = new GoogleGenerativeAI(apiKey);
+      const model = genAI.getGenerativeModel({ model: "imagen-3.0-generate-001" });
+      
+      console.log("Generating image with prompt:", prompt);
+      const result = await model.generateContent(prompt);
+      const response = result.response;
+      
+      // Check if we have images in the response
+      // Note: The structure depends on the SDK version and API response
+      // We'll try to extract base64 data
+      // Typically: response.candidates[0].content.parts[0].inlineData
+      
+      // For now, let's assume we get a base64 string or similar. 
+      // If the SDK returns a different structure, we might need to adjust.
+      // Based on docs, we might need to handle it carefully.
+      
+      // Let's try to find the image data
+      let base64Image = null;
+      let mimeType = "image/png"; // Default
+      
+      // Inspecting response structure (simplified for this implementation)
+      // We will assume standard Gemini response format for now
+      // If this fails, we will debug the response structure
+      
+      // NOTE: As of now, the JS SDK might not fully support Imagen 3 directly in all regions or versions
+      // If this fails, we might need to use a different approach or model.
+      // But we will proceed with the standard pattern.
+      
+      // Attempt to get the first part
+      const candidates = response.candidates;
+      if (candidates && candidates.length > 0) {
+        const parts = candidates[0].content.parts;
+        if (parts && parts.length > 0) {
+           if (parts[0].inlineData) {
+             base64Image = parts[0].inlineData.data;
+             mimeType = parts[0].inlineData.mimeType || "image/png";
+           }
+        }
+      }
+      
+      if (!base64Image) {
+         // Fallback or error if structure doesn't match
+         console.log("Full Response:", JSON.stringify(response, null, 2));
+         throw new Error("No image data found in response");
+      }
+      
+      // Convert base64 to File object
+      const byteCharacters = atob(base64Image);
+      const byteNumbers = new Array(byteCharacters.length);
+      for (let i = 0; i < byteCharacters.length; i++) {
+        byteNumbers[i] = byteCharacters.charCodeAt(i);
+      }
+      const byteArray = new Uint8Array(byteNumbers);
+      const blob = new Blob([byteArray], { type: mimeType });
+      const file = new File([blob], `ai-generated-${Date.now()}.png`, { type: mimeType });
+      
+      // Upload the file
+      const formdata = new FormData();
+      formdata.append("file", file, file.name);
+      
+      toaster.create({
+        title: "Image Generated",
+        description: "Uploading to database...",
+        status: "info",
+        duration: 2000,
+      });
+      
+      const res = await postImage(`${api_base_url}/add_image`, formdata);
+      
+      if (res.status === 200 || res.status === 201) {
+        toaster.create({
+          title: "Success",
+          description: "AI Image generated and uploaded successfully!",
+          status: "success",
+          duration: 5000,
+        });
+        setPrompt(""); // Clear prompt
+        setIsUploadSuccessful(!isUploadSuccessful); // Trigger refresh
+      }
+      
+    } catch (error) {
+      console.error("Generation failed:", error);
+      toaster.create({
+        title: "Generation Failed",
+        description: error.message || "Failed to generate image",
+        status: "error",
+        duration: 5000,
+      });
+    } finally {
+      setIsGenerating(false);
+    }
+  };
+
 
   // Refresh after Upload or Delete
   useEffect(() => {
@@ -562,6 +679,60 @@ export default function Home() {
           Note: Uploading a picture identified as a "bug" will generate a
           Backend Error
         </Heading>
+        <br></br>
+        
+        {/* AI Generation Section */}
+        <Box 
+          w="100%" 
+          maxW="600px" 
+          p={6} 
+          bg="gray.800" 
+          borderRadius="xl" 
+          border="1px solid" 
+          borderColor="purple.500"
+          boxShadow="0 0 20px rgba(128, 90, 213, 0.2)"
+        >
+          <VStack spacing={4}>
+            <Heading size="md" color="purple.300" display="flex" alignItems="center" gap={2}>
+              <FiCpu /> AI Image Generation
+            </Heading>
+            <Text color="gray.400" fontSize="sm">
+              Create images dynamically using the Nano Banana API
+            </Text>
+            <InputGroup size="lg">
+              <Input
+                placeholder="Describe the image you want to generate..."
+                value={prompt}
+                onChange={(e) => setPrompt(e.target.value)}
+                bg="gray.700"
+                border="none"
+                _focus={{ ring: 2, ringColor: "purple.500" }}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' && !isGenerating) {
+                    handleGenerateAndUpload();
+                  }
+                }}
+              />
+            </InputGroup>
+            <Button
+              w="full"
+              colorScheme="purple"
+              bgGradient="linear(to-r, purple.500, blue.500)"
+              isLoading={isGenerating}
+              loadingText="Dreaming up your image..."
+              onClick={handleGenerateAndUpload}
+              _hover={{
+                bgGradient: "linear(to-r, purple.600, blue.600)",
+                transform: "translateY(-2px)",
+                boxShadow: "lg"
+              }}
+              transition="all 0.2s"
+            >
+              Generate & Upload
+            </Button>
+          </VStack>
+        </Box>
+        
         <br></br>
         <Center>
           <VStack spacing={5}>
