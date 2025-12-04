@@ -7,7 +7,6 @@ import {
   FiChevronUp,
   FiCpu,
 } from "react-icons/fi";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 import {
   Box,
   Button,
@@ -60,13 +59,13 @@ const generateRandomPolicy = () => {
  */
 const sendCustomAction = (actionName, additionalAttributes = {}) => {
   const policyValue = generateRandomPolicy();
-  
+
   // Send custom action to Datadog RUM
   datadogRum.addAction(actionName, {
     policy: policyValue,
     ...additionalAttributes
   });
-  
+
   console.log(`Custom action "${actionName}" sent with policy: ${policyValue}`);
   return policyValue;
 };
@@ -134,7 +133,7 @@ export default function Home() {
   const [fileUploadKey, setFileUploadKey] = useState(0); // Key to force FileUpload reset
   const fileUploadRef = useRef(null);
   const toaster = useAppToaster();
-  
+
   // AI Generation State
   const [prompt, setPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
@@ -166,11 +165,11 @@ export default function Home() {
     } catch (error) {
       // Smart fallback handling - use mock data when API is unavailable
       const isDevelopment = import.meta.env.VITE_ENVIRONMENT === 'dev';
-      const isNetworkError = error.code === 'ERR_NETWORK' || 
-                           error.code === 'ERR_NAME_NOT_RESOLVED' ||
-                           error.code === 'ECONNREFUSED' ||
-                           error.message?.includes('CORS');
-      
+      const isNetworkError = error.code === 'ERR_NETWORK' ||
+        error.code === 'ERR_NAME_NOT_RESOLVED' ||
+        error.code === 'ECONNREFUSED' ||
+        error.message?.includes('CORS');
+
       if (isDevelopment && isNetworkError) {
         console.log('🧪 API unavailable in development, using mock data');
         return [
@@ -182,7 +181,7 @@ export default function Home() {
             ai_text: ['Sample', 'Image']
           },
           {
-            id: 'mock-2', 
+            id: 'mock-2',
             name: 'sample-image-2.jpg',
             url: '/qs.png',
             ai_labels: ['gallery', 'example', 'mock'],
@@ -312,12 +311,12 @@ export default function Home() {
 
     setIsLoading(true);
     const uploadResults = [];
-    
+
     try {
       for (const file of selectedFiles) {
         const formdata = new FormData();
         formdata.append("file", file, file.name);
-        
+
         // Send custom action before upload
         const policyValue = sendCustomAction('image_upload_started', {
           fileName: file.name,
@@ -325,17 +324,17 @@ export default function Home() {
           fileType: file.type,
           totalFiles: selectedFiles.length
         });
-        
+
         try {
           const res = await postImage(`${api_base_url}/add_image`, formdata);
-          
+
           // Send another custom action after upload completes
           sendCustomAction('image_upload_completed', {
             fileName: file.name,
             status: res.status,
             backend: activeBackend
           });
-          
+
           if (res.data?.message.includes("questionable")) {
             uploadResults.push({ file: file.name, status: 'questionable', message: res.data.message });
           } else {
@@ -344,7 +343,7 @@ export default function Home() {
         } catch (error) {
           console.error(`Failed to upload ${file.name}:`, error);
           uploadResults.push({ file: file.name, status: 'error', error: error.message });
-          
+
           // Send error to Datadog
           datadogRum.addError(error, {
             context: 'file_upload',
@@ -353,12 +352,12 @@ export default function Home() {
           });
         }
       }
-      
+
       // Show summary toast
       const successCount = uploadResults.filter(r => r.status === 'success').length;
       const errorCount = uploadResults.filter(r => r.status === 'error').length;
       const questionableCount = uploadResults.filter(r => r.status === 'questionable').length;
-      
+
       if (successCount > 0) {
         setIsUploadSuccessful(!isUploadSuccessful);
         toaster.create({
@@ -368,7 +367,7 @@ export default function Home() {
           duration: 6000,
         });
       }
-      
+
       // Show individual error messages for questionable content
       uploadResults.filter(r => r.status === 'questionable').forEach(result => {
         toaster.create({
@@ -378,7 +377,7 @@ export default function Home() {
           duration: 5000,
         });
       });
-      
+
     } finally {
       setIsLoading(false);
       setSelectedFiles([]);
@@ -391,20 +390,20 @@ export default function Home() {
   const onFileDelete = async (image) => {
     const id = image.id || image._id?.$oid; // Mongo or Postgres
     console.log(`Delete: {db: ${activeBackend}, id: ${id}}`);
-    
+
     // Send custom action before delete
     const policyValue = sendCustomAction('image_delete_started', {
       imageId: id,
       imageName: image.name,
       backend: activeBackend
     });
-    
+
     // Set loading state for this specific image
     setDeletingImageId(id);
-    
+
     try {
       const res = await delImage(id);
-      
+
       // Send success custom action after delete completes
       sendCustomAction('image_delete_completed', {
         imageId: id,
@@ -412,12 +411,12 @@ export default function Home() {
         backend: activeBackend,
         success: true
       });
-      
+
       // Fix: Check correct status codes for DELETE operations (200, 201, 204)
       if (res.status === 200 || res.status === 201 || res.status === 204) {
         setIsDeleteSuccessful(!isDeleteSuccessful);
         console.log('Delete successful:', res);
-        
+
         // Show success notification
         toaster.create({
           title: `Delete Successful`,
@@ -439,7 +438,7 @@ export default function Home() {
       }
     } catch (error) {
       console.error('Delete failed:', error);
-      
+
       // Send failure custom action for monitoring
       sendCustomAction('image_delete_failed', {
         imageId: id,
@@ -449,13 +448,13 @@ export default function Home() {
         status: error.response?.status || 'unknown',
         success: false
       });
-      
+
       // Show user-friendly error notification
-      const errorMessage = error.response?.data?.message || 
-                           error.response?.statusText || 
-                           error.message || 
-                           'Unknown error occurred';
-      
+      const errorMessage = error.response?.data?.message ||
+        error.response?.statusText ||
+        error.message ||
+        'Unknown error occurred';
+
       toaster.create({
         title: `Delete Failed`,
         description: `Failed to delete ${image.name}: ${errorMessage}`,
@@ -472,7 +471,7 @@ export default function Home() {
     // Add an attachment
     const name =
       image.name.substring(0, image.name.lastIndexOf(".")) || image.name;
-    
+
     // Send custom action before error
     const policyValue = sendCustomAction('error_generation', {
       imageName: image.name,
@@ -480,17 +479,17 @@ export default function Home() {
       labels: image.ai_labels,
       backend: activeBackend
     });
-    
+
     await image.ai_labels.map((label, index) => {
     });
-    
+
     toaster.create({
       title: "Error Sent",
       description: `We sent your ERROR on - ${image.name} with policy: ${policyValue}`,
       status: "success",
       duration: 5000,
     });
-    
+
     // throw the error
     throw new ValidationError(image.name);
   };
@@ -508,57 +507,32 @@ export default function Home() {
 
     setIsGenerating(true);
     try {
-      const apiKey = import.meta.env.VITE_GEMINI_API_KEY;
-      if (!apiKey) {
-        throw new Error("Gemini API Key is missing. Please check your .env file.");
+      console.log("Generating image with prompt:", prompt);
+
+      // Call backend API
+      const response = await fetch("https://api-images.quickstark.com/api/v1/gemini-generate-image", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          prompt: prompt,
+          size: "1024x1024",
+          model: "imagen-3.5-flash"
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.detail || `API Error: ${response.status}`);
       }
 
-      const genAI = new GoogleGenerativeAI(apiKey);
-      const model = genAI.getGenerativeModel({ model: "imagen-3.0-generate-001" });
-      
-      console.log("Generating image with prompt:", prompt);
-      const result = await model.generateContent(prompt);
-      const response = result.response;
-      
-      // Check if we have images in the response
-      // Note: The structure depends on the SDK version and API response
-      // We'll try to extract base64 data
-      // Typically: response.candidates[0].content.parts[0].inlineData
-      
-      // For now, let's assume we get a base64 string or similar. 
-      // If the SDK returns a different structure, we might need to adjust.
-      // Based on docs, we might need to handle it carefully.
-      
-      // Let's try to find the image data
-      let base64Image = null;
-      let mimeType = "image/png"; // Default
-      
-      // Inspecting response structure (simplified for this implementation)
-      // We will assume standard Gemini response format for now
-      // If this fails, we will debug the response structure
-      
-      // NOTE: As of now, the JS SDK might not fully support Imagen 3 directly in all regions or versions
-      // If this fails, we might need to use a different approach or model.
-      // But we will proceed with the standard pattern.
-      
-      // Attempt to get the first part
-      const candidates = response.candidates;
-      if (candidates && candidates.length > 0) {
-        const parts = candidates[0].content.parts;
-        if (parts && parts.length > 0) {
-           if (parts[0].inlineData) {
-             base64Image = parts[0].inlineData.data;
-             mimeType = parts[0].inlineData.mimeType || "image/png";
-           }
-        }
-      }
-      
+      const data = await response.json();
+      const base64Image = data.image_base64;
+      const mimeType = data.mime_type || "image/png";
+
       if (!base64Image) {
-         // Fallback or error if structure doesn't match
-         console.log("Full Response:", JSON.stringify(response, null, 2));
-         throw new Error("No image data found in response");
+        throw new Error("No image data found in response");
       }
-      
+
       // Convert base64 to File object
       const byteCharacters = atob(base64Image);
       const byteNumbers = new Array(byteCharacters.length);
@@ -568,20 +542,20 @@ export default function Home() {
       const byteArray = new Uint8Array(byteNumbers);
       const blob = new Blob([byteArray], { type: mimeType });
       const file = new File([blob], `ai-generated-${Date.now()}.png`, { type: mimeType });
-      
+
       // Upload the file
       const formdata = new FormData();
       formdata.append("file", file, file.name);
-      
+
       toaster.create({
         title: "Image Generated",
         description: "Uploading to database...",
         status: "info",
         duration: 2000,
       });
-      
+
       const res = await postImage(`${api_base_url}/add_image`, formdata);
-      
+
       if (res.status === 200 || res.status === 201) {
         toaster.create({
           title: "Success",
@@ -592,7 +566,7 @@ export default function Home() {
         setPrompt(""); // Clear prompt
         setIsUploadSuccessful(!isUploadSuccessful); // Trigger refresh
       }
-      
+
     } catch (error) {
       console.error("Generation failed:", error);
       toaster.create({
@@ -617,11 +591,11 @@ export default function Home() {
         localStorage.setItem("activeBackend", activeBackend);
       } catch (error) {
         console.error('Failed to load images:', error);
-        
+
         // Determine error type and provide specific feedback
         let errorTitle = "Failed to Load Images";
         let errorDescription = `Could not load images from ${activeBackend}. Please try again.`;
-        
+
         if (error.code === 'ERR_NETWORK' || error.code === 'ERR_NAME_NOT_RESOLVED') {
           errorTitle = "Network Connection Error";
           errorDescription = `Cannot connect to the API server. Using offline mode with sample data.`;
@@ -635,7 +609,7 @@ export default function Home() {
           errorTitle = "API Endpoint Not Found";
           errorDescription = `The images endpoint was not found. Using offline mode with sample data.`;
         }
-        
+
         // Send error to Datadog with enhanced context
         datadogRum.addError(error, {
           context: 'image_loading',
@@ -645,7 +619,7 @@ export default function Home() {
           errorCode: error.code,
           httpStatus: error.response?.status
         });
-        
+
         // Show enhanced user-friendly error
         toaster.create({
           title: errorTitle,
@@ -653,7 +627,7 @@ export default function Home() {
           status: "error",
           duration: 8000,
         });
-        
+
         // Set empty array as fallback to prevent UI issues
         setAllImages([]);
       } finally {
@@ -680,15 +654,15 @@ export default function Home() {
           Backend Error
         </Heading>
         <br></br>
-        
+
         {/* AI Generation Section */}
-        <Box 
-          w="100%" 
-          maxW="600px" 
-          p={6} 
-          bg="gray.800" 
-          borderRadius="xl" 
-          border="1px solid" 
+        <Box
+          w="100%"
+          maxW="600px"
+          p={6}
+          bg="gray.800"
+          borderRadius="xl"
+          border="1px solid"
           borderColor="purple.500"
           boxShadow="0 0 20px rgba(128, 90, 213, 0.2)"
         >
@@ -732,7 +706,7 @@ export default function Home() {
             </Button>
           </VStack>
         </Box>
-        
+
         <br></br>
         <Center>
           <VStack spacing={5}>
@@ -758,7 +732,7 @@ export default function Home() {
                   Select Images (Max 10)
                 </Button>
               </FileUpload.Trigger>
-              
+
               <FileUpload.ItemGroup mt={3}>
                 {selectedFiles.map((file, index) => (
                   <FileUpload.Item key={index} file={file}>
@@ -779,7 +753,7 @@ export default function Home() {
                 ))}
               </FileUpload.ItemGroup>
             </FileUpload.Root>
-            
+
 
             <Button
               bg="yellow.500"
@@ -805,7 +779,7 @@ export default function Home() {
             color="white"
             border={activeBackend === 'mongo' ? '2px solid' : '2px solid'}
             borderColor={activeBackend === 'mongo' ? 'purple.400' : 'gray.500'}
-            _hover={{ 
+            _hover={{
               bg: activeBackend === 'mongo' ? 'purple.600' : 'gray.600',
               borderColor: activeBackend === 'mongo' ? 'purple.300' : 'gray.400'
             }}
@@ -822,7 +796,7 @@ export default function Home() {
             color="white"
             border={activeBackend === 'postgres' ? '2px solid' : '2px solid'}
             borderColor={activeBackend === 'postgres' ? 'purple.400' : 'gray.500'}
-            _hover={{ 
+            _hover={{
               bg: activeBackend === 'postgres' ? 'purple.600' : 'gray.600',
               borderColor: activeBackend === 'postgres' ? 'purple.300' : 'gray.400'
             }}
@@ -836,7 +810,7 @@ export default function Home() {
         </Stack>
 
         <br></br>
-        <SimpleGrid 
+        <SimpleGrid
           columns={{ base: 1, md: 2, lg: cols }}
           gap={{ base: "20px", md: "30px", lg: "40px" }}
           maxW="1200px"
@@ -867,16 +841,16 @@ export default function Home() {
               // Create a consistent unique key
               const uniqueKey = image.id || image._id?.$oid || `${image.name}-${image.url}`;
               const isDropdownOpen = expandedDropdowns[uniqueKey] || false;
-              
+
               const toggleDropdown = () => {
                 setExpandedDropdowns(prev => ({ ...prev, [uniqueKey]: !prev[uniqueKey] }));
               };
-              
+
               return (
-                <Box 
-                  key={uniqueKey} 
-                  className="image_container elevated-card" 
-                  maxW="300px" 
+                <Box
+                  key={uniqueKey}
+                  className="image_container elevated-card"
+                  maxW="300px"
                   position="relative"
                   borderRadius="xl"
                   overflow="hidden"
@@ -909,173 +883,173 @@ export default function Home() {
                       flexDirection="column"
                       gap="8px"
                     >
-                    <IconButton
-                      key={`error_button-${uniqueKey}`}
-                      bg="gray.800"
-                      color="yellow.300"
-                      className="error_button"
-                      colorScheme="yellow"
-                      aria-label="Throw Error"
-                      size="md"
-                      onClick={() => onSendError(image)}
-                    >
-                      <FiAlertTriangle />
-                    </IconButton>
-                    <IconButton
-                      key={`feedback_button-${uniqueKey}`}
-                      bg="gray.800"
-                      color="yellow.300"
-                      className="feedback_button"
-                      colorScheme="orange"
-                      aria-label="Send Feedback"
-                      size="md"
-                      onClick={() => onUnhandledError("User Feedback Error")}
-                    >
-                      <FiMessageCircle />
-                    </IconButton>
-                    <IconButton
-                      key={`delete_button-${uniqueKey}`}
-                      bg="gray.800"
-                      color="red.500"
-                      className="delete_button"
-                      colorScheme="red"
-                      aria-label="Delete Image"
-                      size="md"
-                      loading={deletingImageId === (image.id || image._id?.$oid)}
-                      onClick={() => onFileDelete(image)}
-                    >
-                      <FiTrash2 />
-                    </IconButton>
-                    </Box>
-                  <Image
-                    key={`image-${uniqueKey}`}
-                    borderRadius={15}
-                    boxSize="300px"
-                    src={image.url}
-                    objectFit="cover"
-                    fallback={
-                      <div 
-                        style={{
-                          width: '300px',
-                          height: '300px',
-                          backgroundColor: '#2D3748',
-                          borderRadius: '15px',
-                          display: 'flex',
-                          flexDirection: 'column',
-                          alignItems: 'center',
-                          justifyContent: 'center',
-                          color: '#A0AEC0',
-                          padding: '20px',
-                          textAlign: 'center'
-                        }}
+                      <IconButton
+                        key={`error_button-${uniqueKey}`}
+                        bg="gray.800"
+                        color="yellow.300"
+                        className="error_button"
+                        colorScheme="yellow"
+                        aria-label="Throw Error"
+                        size="md"
+                        onClick={() => onSendError(image)}
                       >
-                        <div style={{ fontSize: '18px', marginBottom: '10px' }}>📷</div>
-                        <div style={{ fontSize: '14px' }}>Failed to Load</div>
-                        <div style={{ fontSize: '12px', marginTop: '5px', opacity: 0.7 }}>
-                          {image.name}
+                        <FiAlertTriangle />
+                      </IconButton>
+                      <IconButton
+                        key={`feedback_button-${uniqueKey}`}
+                        bg="gray.800"
+                        color="yellow.300"
+                        className="feedback_button"
+                        colorScheme="orange"
+                        aria-label="Send Feedback"
+                        size="md"
+                        onClick={() => onUnhandledError("User Feedback Error")}
+                      >
+                        <FiMessageCircle />
+                      </IconButton>
+                      <IconButton
+                        key={`delete_button-${uniqueKey}`}
+                        bg="gray.800"
+                        color="red.500"
+                        className="delete_button"
+                        colorScheme="red"
+                        aria-label="Delete Image"
+                        size="md"
+                        loading={deletingImageId === (image.id || image._id?.$oid)}
+                        onClick={() => onFileDelete(image)}
+                      >
+                        <FiTrash2 />
+                      </IconButton>
+                    </Box>
+                    <Image
+                      key={`image-${uniqueKey}`}
+                      borderRadius={15}
+                      boxSize="300px"
+                      src={image.url}
+                      objectFit="cover"
+                      fallback={
+                        <div
+                          style={{
+                            width: '300px',
+                            height: '300px',
+                            backgroundColor: '#2D3748',
+                            borderRadius: '15px',
+                            display: 'flex',
+                            flexDirection: 'column',
+                            alignItems: 'center',
+                            justifyContent: 'center',
+                            color: '#A0AEC0',
+                            padding: '20px',
+                            textAlign: 'center'
+                          }}
+                        >
+                          <div style={{ fontSize: '18px', marginBottom: '10px' }}>📷</div>
+                          <div style={{ fontSize: '14px' }}>Failed to Load</div>
+                          <div style={{ fontSize: '12px', marginTop: '5px', opacity: 0.7 }}>
+                            {image.name}
+                          </div>
                         </div>
-                      </div>
-                    }
-                    onError={(e) => {
-                      console.error(`Failed to load image: ${image.url}`, e);
-                      
-                      // Check if it's a 403 error (access denied)
-                      const isAccessDenied = e.target.src.includes('quickstark-images.s3.amazonaws.com');
-                      
-                      // Send error to Datadog with more context
-                      datadogRum.addError(new Error(`Image load failed: ${image.name}`), {
-                        imageUrl: image.url,
-                        imageName: image.name,
-                        backend: activeBackend,
-                        errorType: isAccessDenied ? 'S3_ACCESS_DENIED' : 'GENERIC_LOAD_ERROR',
-                        httpStatus: isAccessDenied ? '403' : 'unknown'
-                      });
-                    }}
-                  ></Image>
-                  
-                  {/* Filename Overlay */}
-                  <Box
-                    position="absolute"
-                    bottom={0}
-                    left={0}
-                    right={0}
-                    background="linear-gradient(transparent, rgba(0,0,0,0.9))"
-                    p={4}
-                    pt={12}
-                  >
-                    <Text
-                      fontSize="lg"
-                      fontWeight="semibold"
-                      color="white"
-                      noOfLines={2}
-                      wordBreak="break-word"
-                      textShadow="0 2px 4px rgba(0,0,0,0.9)"
-                      letterSpacing="wide"
-                      lineHeight="shorter"
-                    >
-                      {image.name}
-                    </Text>
-                  </Box>
-                  
-                  {/* AI Details Content */}
-                  <Box
-                    position="relative"
-                    bg="gray.800"
-                    transition="all 0.3s ease-in-out"
-                  >
-                    
-                    <Collapsible.Root open={isDropdownOpen}>
-                      <Collapsible.Content>
-                        <VStack spacing={4} align="stretch" p={4} pb={12}>
-                          {/* Text Detected Section */}
-                          <Box>
-                            <Text fontSize="sm" fontWeight="bold" color="orange.300" mb={2}>
-                              Text Detected:
-                            </Text>
-                            {image.ai_text?.length > 0 ? (
-                              <Text 
-                                fontSize="xs" 
-                                color="gray.300"
-                                wordBreak="break-word"
-                                bg="gray.700"
-                                p={2}
-                                borderRadius="sm"
-                              >
-                                {image.ai_text.join(", ")}
-                              </Text>
-                            ) : (
-                              <Text fontSize="xs" color="gray.300" fontStyle="italic">
-                                No Text Detected
-                              </Text>
-                            )}
-                          </Box>
+                      }
+                      onError={(e) => {
+                        console.error(`Failed to load image: ${image.url}`, e);
 
-                          {/* Tags Section */}
-                          <Box>
-                            <Text fontSize="sm" fontWeight="bold" color="green.300" mb={2}>
-                              Tags:
-                            </Text>
-                            {image.ai_labels?.length > 0 ? (
-                              <Wrap spacing={1}>
-                                {image.ai_labels.map((label, index) => (
-                                  <WrapItem key={index}>
-                                    <Tag.Root size="sm" colorScheme="green" variant="solid">
-                                      <Tag.Label>{label}</Tag.Label>
-                                    </Tag.Root>
-                                  </WrapItem>
-                                ))}
-                              </Wrap>
-                            ) : (
-                              <Text fontSize="xs" color="gray.300" fontStyle="italic">
-                                No Labels Detected
+                        // Check if it's a 403 error (access denied)
+                        const isAccessDenied = e.target.src.includes('quickstark-images.s3.amazonaws.com');
+
+                        // Send error to Datadog with more context
+                        datadogRum.addError(new Error(`Image load failed: ${image.name}`), {
+                          imageUrl: image.url,
+                          imageName: image.name,
+                          backend: activeBackend,
+                          errorType: isAccessDenied ? 'S3_ACCESS_DENIED' : 'GENERIC_LOAD_ERROR',
+                          httpStatus: isAccessDenied ? '403' : 'unknown'
+                        });
+                      }}
+                    ></Image>
+
+                    {/* Filename Overlay */}
+                    <Box
+                      position="absolute"
+                      bottom={0}
+                      left={0}
+                      right={0}
+                      background="linear-gradient(transparent, rgba(0,0,0,0.9))"
+                      p={4}
+                      pt={12}
+                    >
+                      <Text
+                        fontSize="lg"
+                        fontWeight="semibold"
+                        color="white"
+                        noOfLines={2}
+                        wordBreak="break-word"
+                        textShadow="0 2px 4px rgba(0,0,0,0.9)"
+                        letterSpacing="wide"
+                        lineHeight="shorter"
+                      >
+                        {image.name}
+                      </Text>
+                    </Box>
+
+                    {/* AI Details Content */}
+                    <Box
+                      position="relative"
+                      bg="gray.800"
+                      transition="all 0.3s ease-in-out"
+                    >
+
+                      <Collapsible.Root open={isDropdownOpen}>
+                        <Collapsible.Content>
+                          <VStack spacing={4} align="stretch" p={4} pb={12}>
+                            {/* Text Detected Section */}
+                            <Box>
+                              <Text fontSize="sm" fontWeight="bold" color="orange.300" mb={2}>
+                                Text Detected:
                               </Text>
-                            )}
-                          </Box>
-                        </VStack>
-                      </Collapsible.Content>
-                    </Collapsible.Root>
-                  </Box>
-                    
+                              {image.ai_text?.length > 0 ? (
+                                <Text
+                                  fontSize="xs"
+                                  color="gray.300"
+                                  wordBreak="break-word"
+                                  bg="gray.700"
+                                  p={2}
+                                  borderRadius="sm"
+                                >
+                                  {image.ai_text.join(", ")}
+                                </Text>
+                              ) : (
+                                <Text fontSize="xs" color="gray.300" fontStyle="italic">
+                                  No Text Detected
+                                </Text>
+                              )}
+                            </Box>
+
+                            {/* Tags Section */}
+                            <Box>
+                              <Text fontSize="sm" fontWeight="bold" color="green.300" mb={2}>
+                                Tags:
+                              </Text>
+                              {image.ai_labels?.length > 0 ? (
+                                <Wrap spacing={1}>
+                                  {image.ai_labels.map((label, index) => (
+                                    <WrapItem key={index}>
+                                      <Tag.Root size="sm" colorScheme="green" variant="solid">
+                                        <Tag.Label>{label}</Tag.Label>
+                                      </Tag.Root>
+                                    </WrapItem>
+                                  ))}
+                                </Wrap>
+                              ) : (
+                                <Text fontSize="xs" color="gray.300" fontStyle="italic">
+                                  No Labels Detected
+                                </Text>
+                              )}
+                            </Box>
+                          </VStack>
+                        </Collapsible.Content>
+                      </Collapsible.Root>
+                    </Box>
+
                     {/* Elegant Chevron */}
                     <Box
                       position="absolute"
@@ -1110,13 +1084,13 @@ export default function Home() {
                         outlineOffset: "1px"
                       }}
                     >
-                      <FiChevronDown 
-                        size={12} 
+                      <FiChevronDown
+                        size={12}
                         color="rgba(255,255,255,0.8)"
-                        style={{ 
+                        style={{
                           filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.6))',
                           transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
-                        }} 
+                        }}
                       />
                     </Box>
                   </Box>
