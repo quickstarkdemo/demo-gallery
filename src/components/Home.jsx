@@ -30,6 +30,7 @@ import {
   NativeSelect,
   Spinner,
 } from "@chakra-ui/react";
+import Zoom from 'react-medium-image-zoom';
 import "react-medium-image-zoom/dist/styles.css";
 import { datadogRum } from '@datadog/browser-rum';
 
@@ -155,6 +156,28 @@ export default function Home() {
       .split(" ")
       .map((word) => word.charAt(0).toUpperCase() + word.slice(1))
       .join(" ");
+  };
+
+  /**
+   * Generates a succinct filename from the prompt
+   * @param {string} prompt - The user's prompt
+   * @returns {string} A clean filename
+   */
+  const generateFilename = (prompt) => {
+    if (!prompt) return `ai-generated-${Date.now()}`;
+
+    const stopWords = ['a', 'an', 'the', 'in', 'on', 'at', 'to', 'for', 'of', 'with', 'by'];
+    const cleanPrompt = prompt
+      .toLowerCase()
+      .replace(/[^a-z0-9\s]/g, '') // Remove special chars
+      .split(' ')
+      .filter(word => !stopWords.includes(word))
+      .join('-');
+
+    const truncated = cleanPrompt.substring(0, 30).replace(/-$/, '');
+    const uniqueSuffix = Date.now().toString().slice(-4);
+
+    return `${truncated}-${uniqueSuffix}`;
   };
 
   const getImages = async () => {
@@ -545,7 +568,9 @@ export default function Home() {
       }
       const byteArray = new Uint8Array(byteNumbers);
       const blob = new Blob([byteArray], { type: mimeType });
-      const file = new File([blob], `ai-generated-${Date.now()}.png`, { type: mimeType });
+
+      const filename = `${generateFilename(prompt)}.png`;
+      const file = new File([blob], filename, { type: mimeType });
 
       // Upload the file
       const formdata = new FormData();
@@ -910,8 +935,9 @@ export default function Home() {
                   borderRadius="xl"
                   overflow="hidden"
                   bg="gray.800"
-                  cursor="pointer"
-                  onClick={toggleDropdown}
+                  overflow="hidden"
+                  bg="gray.800"
+                  cursor="default"
                   role="button"
                   tabIndex={0}
                   aria-label={`View AI details for ${image.name}`}
@@ -976,51 +1002,53 @@ export default function Home() {
                         <FiTrash2 />
                       </IconButton>
                     </Box>
-                    <Image
-                      key={`image-${uniqueKey}`}
-                      borderRadius={15}
-                      boxSize="300px"
-                      src={image.url}
-                      objectFit="cover"
-                      fallback={
-                        <div
-                          style={{
-                            width: '300px',
-                            height: '300px',
-                            backgroundColor: '#2D3748',
-                            borderRadius: '15px',
-                            display: 'flex',
-                            flexDirection: 'column',
-                            alignItems: 'center',
-                            justifyContent: 'center',
-                            color: '#A0AEC0',
-                            padding: '20px',
-                            textAlign: 'center'
-                          }}
-                        >
-                          <div style={{ fontSize: '18px', marginBottom: '10px' }}>📷</div>
-                          <div style={{ fontSize: '14px' }}>Failed to Load</div>
-                          <div style={{ fontSize: '12px', marginTop: '5px', opacity: 0.7 }}>
-                            {image.name}
+                    <Zoom>
+                      <Image
+                        key={`image-${uniqueKey}`}
+                        borderRadius={15}
+                        boxSize="300px"
+                        src={image.url}
+                        objectFit="cover"
+                        fallback={
+                          <div
+                            style={{
+                              width: '300px',
+                              height: '300px',
+                              backgroundColor: '#2D3748',
+                              borderRadius: '15px',
+                              display: 'flex',
+                              flexDirection: 'column',
+                              alignItems: 'center',
+                              justifyContent: 'center',
+                              color: '#A0AEC0',
+                              padding: '20px',
+                              textAlign: 'center'
+                            }}
+                          >
+                            <div style={{ fontSize: '18px', marginBottom: '10px' }}>📷</div>
+                            <div style={{ fontSize: '14px' }}>Failed to Load</div>
+                            <div style={{ fontSize: '12px', marginTop: '5px', opacity: 0.7 }}>
+                              {image.name}
+                            </div>
                           </div>
-                        </div>
-                      }
-                      onError={(e) => {
-                        console.error(`Failed to load image: ${image.url}`, e);
+                        }
+                        onError={(e) => {
+                          console.error(`Failed to load image: ${image.url}`, e);
 
-                        // Check if it's a 403 error (access denied)
-                        const isAccessDenied = e.target.src.includes('quickstark-images.s3.amazonaws.com');
+                          // Check if it's a 403 error (access denied)
+                          const isAccessDenied = e.target.src.includes('quickstark-images.s3.amazonaws.com');
 
-                        // Send error to Datadog with more context
-                        datadogRum.addError(new Error(`Image load failed: ${image.name}`), {
-                          imageUrl: image.url,
-                          imageName: image.name,
-                          backend: activeBackend,
-                          errorType: isAccessDenied ? 'S3_ACCESS_DENIED' : 'GENERIC_LOAD_ERROR',
-                          httpStatus: isAccessDenied ? '403' : 'unknown'
-                        });
-                      }}
-                    ></Image>
+                          // Send error to Datadog with more context
+                          datadogRum.addError(new Error(`Image load failed: ${image.name}`), {
+                            imageUrl: image.url,
+                            imageName: image.name,
+                            backend: activeBackend,
+                            errorType: isAccessDenied ? 'S3_ACCESS_DENIED' : 'GENERIC_LOAD_ERROR',
+                            httpStatus: isAccessDenied ? '403' : 'unknown'
+                          });
+                        }}
+                      ></Image>
+                    </Zoom>
 
                     {/* Filename Overlay */}
                     <Box
@@ -1140,8 +1168,8 @@ export default function Home() {
                       }}
                     >
                       <FiChevronDown
-                        size={12}
-                        color="rgba(255,255,255,0.8)"
+                        size={20}
+                        color="#ECC94B"
                         style={{
                           filter: 'drop-shadow(0 1px 2px rgba(0,0,0,0.6))',
                           transition: 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)'
