@@ -27,7 +27,7 @@ import {
   Wrap,
   WrapItem,
   Collapsible,
-  Select,
+  NativeSelect,
 } from "@chakra-ui/react";
 import "react-medium-image-zoom/dist/styles.css";
 import { datadogRum } from '@datadog/browser-rum';
@@ -678,30 +678,36 @@ export default function Home() {
             </Text>
 
             <Stack direction={{ base: "column", md: "row" }} w="100%" spacing={4}>
-              <Select
-                value={resolution}
-                onChange={(e) => setResolution(e.target.value)}
-                bg="gray.700"
-                border="none"
-                _focus={{ ring: 2, ringColor: "purple.500" }}
-              >
-                <option value="1024x1024">1024x1024 (Square)</option>
-                <option value="512x512">512x512 (Small Square)</option>
-                <option value="640x640">640x640 (Medium Square)</option>
-                <option value="1280x720">1280x720 (Landscape)</option>
-                <option value="720x1280">720x1280 (Portrait)</option>
-              </Select>
+              <NativeSelect.Root>
+                <NativeSelect.Field
+                  value={resolution}
+                  onChange={(e) => setResolution(e.target.value)}
+                  bg="gray.700"
+                  border="none"
+                  _focus={{ ring: 2, ringColor: "purple.500" }}
+                >
+                  <option value="1024x1024">1024x1024 (Square)</option>
+                  <option value="512x512">512x512 (Small Square)</option>
+                  <option value="640x640">640x640 (Medium Square)</option>
+                  <option value="1280x720">1280x720 (Landscape)</option>
+                  <option value="720x1280">720x1280 (Portrait)</option>
+                </NativeSelect.Field>
+                <NativeSelect.Indicator />
+              </NativeSelect.Root>
 
-              <Select
-                value={selectedModel}
-                onChange={(e) => setSelectedModel(e.target.value)}
-                bg="gray.700"
-                border="none"
-                _focus={{ ring: 2, ringColor: "purple.500" }}
-              >
-                <option value="gemini-3-pro-image-preview">Gemini 3 Pro (Preview)</option>
-                <option value="gemini-2.5-flash-image">Gemini 2.5 Flash</option>
-              </Select>
+              <NativeSelect.Root>
+                <NativeSelect.Field
+                  value={selectedModel}
+                  onChange={(e) => setSelectedModel(e.target.value)}
+                  bg="gray.700"
+                  border="none"
+                  _focus={{ ring: 2, ringColor: "purple.500" }}
+                >
+                  <option value="gemini-3-pro-image-preview">Gemini 3 Pro (Preview)</option>
+                  <option value="gemini-2.5-flash-image">Gemini 2.5 Flash</option>
+                </NativeSelect.Field>
+                <NativeSelect.Indicator />
+              </NativeSelect.Root>
             </Stack>
 
             <InputGroup size="lg">
