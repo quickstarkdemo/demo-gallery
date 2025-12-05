@@ -513,7 +513,7 @@ export default function Home() {
       console.log("Generating image with prompt:", prompt);
 
       // Call backend API
-      const response = await fetch("https://api-image.quickstark.com/api/v1/gemini-generate-image", {
+      const response = await fetch("https://api-images.quickstark.com/api/v1/gemini-generate-image", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
