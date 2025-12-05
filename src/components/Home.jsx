@@ -27,6 +27,7 @@ import {
   Wrap,
   WrapItem,
   Collapsible,
+  Select,
 } from "@chakra-ui/react";
 import "react-medium-image-zoom/dist/styles.css";
 import { datadogRum } from '@datadog/browser-rum';
@@ -137,6 +138,8 @@ export default function Home() {
   // AI Generation State
   const [prompt, setPrompt] = useState("");
   const [isGenerating, setIsGenerating] = useState(false);
+  const [resolution, setResolution] = useState("1024x1024");
+  const [selectedModel, setSelectedModel] = useState("gemini-3-pro-image-preview");
 
   const cols = isLargerThan1200 ? 4 : 1;
 
@@ -515,8 +518,8 @@ export default function Home() {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           prompt: prompt,
-          size: "1024x1024",
-          model: "imagen-3.5-flash"
+          size: resolution,
+          model: selectedModel
         })
       });
 
@@ -673,6 +676,34 @@ export default function Home() {
             <Text color="gray.400" fontSize="sm">
               Create images dynamically using the Nano Banana API
             </Text>
+
+            <Stack direction={{ base: "column", md: "row" }} w="100%" spacing={4}>
+              <Select
+                value={resolution}
+                onChange={(e) => setResolution(e.target.value)}
+                bg="gray.700"
+                border="none"
+                _focus={{ ring: 2, ringColor: "purple.500" }}
+              >
+                <option value="1024x1024">1024x1024 (Square)</option>
+                <option value="512x512">512x512 (Small Square)</option>
+                <option value="640x640">640x640 (Medium Square)</option>
+                <option value="1280x720">1280x720 (Landscape)</option>
+                <option value="720x1280">720x1280 (Portrait)</option>
+              </Select>
+
+              <Select
+                value={selectedModel}
+                onChange={(e) => setSelectedModel(e.target.value)}
+                bg="gray.700"
+                border="none"
+                _focus={{ ring: 2, ringColor: "purple.500" }}
+              >
+                <option value="gemini-3-pro-image-preview">Gemini 3 Pro (Preview)</option>
+                <option value="gemini-2.5-flash-image">Gemini 2.5 Flash</option>
+              </Select>
+            </Stack>
+
             <InputGroup size="lg">
               <Input
                 placeholder="Describe the image you want to generate..."
