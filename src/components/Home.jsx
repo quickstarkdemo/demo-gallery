@@ -28,6 +28,7 @@ import {
   WrapItem,
   Collapsible,
   NativeSelect,
+  Spinner,
 } from "@chakra-ui/react";
 import "react-medium-image-zoom/dist/styles.css";
 import { datadogRum } from '@datadog/browser-rum';
@@ -691,6 +692,11 @@ export default function Home() {
                   <option value="640x640">640x640 (Medium Square)</option>
                   <option value="1280x720">1280x720 (Landscape)</option>
                   <option value="720x1280">720x1280 (Portrait)</option>
+                  <option value="1920x1080">1920x1080 (Full HD)</option>
+                  <option value="1366x768">1366x768 (Laptop)</option>
+                  <option value="1536x864">1536x864 (Large Laptop)</option>
+                  <option value="1440x900">1440x900 (Wide)</option>
+                  <option value="2048x2048">2048x2048 (Large Square)</option>
                 </NativeSelect.Field>
                 <NativeSelect.Indicator />
               </NativeSelect.Root>
@@ -731,6 +737,7 @@ export default function Home() {
               bgGradient="linear(to-r, purple.500, blue.500)"
               isLoading={isGenerating}
               loadingText="Dreaming up your image..."
+              spinner={<Spinner size="sm" color="white" />}
               onClick={handleGenerateAndUpload}
               _hover={{
                 bgGradient: "linear(to-r, purple.600, blue.600)",
@@ -741,6 +748,17 @@ export default function Home() {
             >
               Generate & Upload
             </Button>
+
+            {isGenerating && (
+              <Center p={2}>
+                <VStack>
+                  <Spinner size="xl" color="purple.400" thickness="4px" speed="0.65s" emptyColor="gray.700" />
+                  <Text color="purple.300" fontSize="sm" animate={{ opacity: [0.5, 1, 0.5] }} transition={{ duration: 1.5, repeat: Infinity }}>
+                    Creating your masterpiece...
+                  </Text>
+                </VStack>
+              </Center>
+            )}
           </VStack>
         </Box>
 
