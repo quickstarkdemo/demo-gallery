@@ -14,8 +14,8 @@ import {
   Heading,
   IconButton,
   Image,
-  Input,
-  InputGroup,
+  Input, // Kept for other inputs if any
+  InputGroup, // Kept for other inputs if any
   Link,
   SimpleGrid,
   Stack,
@@ -27,7 +27,7 @@ import {
   Wrap,
   WrapItem,
   Collapsible,
-  NativeSelect,
+  NativeSelect, // Kept if used elsewhere
   Spinner,
 } from "@chakra-ui/react";
 import Zoom from 'react-medium-image-zoom';
@@ -39,6 +39,7 @@ import { useEffect, useRef, useState } from "react";
 import axios from "axios";
 import apiClient from "../utils/apiClient";
 import React from "react";
+import ImageChat from "./ImageChat";
 
 import { useEnvContext } from "./Context";
 import { useAppToaster } from "../hooks/useAppToaster";
@@ -137,11 +138,7 @@ export default function Home() {
   const fileUploadRef = useRef(null);
   const toaster = useAppToaster();
 
-  // AI Generation State
-  const [prompt, setPrompt] = useState("");
-  const [isGenerating, setIsGenerating] = useState(false);
-  const [resolution, setResolution] = useState("1024x1024");
-  const [selectedModel, setSelectedModel] = useState("gemini-3-pro-image-preview");
+  // Legacy AI State (Cleaned up, now handled by ImageChat)
 
   const cols = isLargerThan1200 ? 4 : 1;
 
@@ -521,91 +518,38 @@ export default function Home() {
     throw new ValidationError(image.name);
   };
 
-  const handleGenerateAndUpload = async () => {
-    if (!prompt) {
-      toaster.create({
-        title: "Prompt Required",
-        description: "Please enter a prompt to generate an image.",
-        status: "warning",
-        duration: 3000,
-      });
-      return;
-    }
+  const handleChatImageSave = async (file) => {
+    // Logic to upload the saved image to the backend gallery
+    const formdata = new FormData();
+    formdata.append("file", file, file.name);
 
-    setIsGenerating(true);
+    toaster.create({
+      title: "Saving to Gallery",
+      description: "Uploading your creation...",
+      status: "info",
+      duration: 2000,
+    });
+
     try {
-      console.log("Generating image with prompt:", prompt);
-
-      // Call backend API
-      const response = await fetch("https://api-images.quickstark.com/api/v1/gemini-generate-image", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          prompt: prompt,
-          size: resolution,
-          model: selectedModel
-        })
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        throw new Error(errorData.detail || `API Error: ${response.status}`);
-      }
-
-      const data = await response.json();
-      const base64Image = data.image_base64;
-      const mimeType = data.mime_type || "image/png";
-
-      if (!base64Image) {
-        throw new Error("No image data found in response");
-      }
-
-      // Convert base64 to File object
-      const byteCharacters = atob(base64Image);
-      const byteNumbers = new Array(byteCharacters.length);
-      for (let i = 0; i < byteCharacters.length; i++) {
-        byteNumbers[i] = byteCharacters.charCodeAt(i);
-      }
-      const byteArray = new Uint8Array(byteNumbers);
-      const blob = new Blob([byteArray], { type: mimeType });
-
-      const filename = `${generateFilename(prompt)}.png`;
-      const file = new File([blob], filename, { type: mimeType });
-
-      // Upload the file
-      const formdata = new FormData();
-      formdata.append("file", file, file.name);
-
-      toaster.create({
-        title: "Image Generated",
-        description: "Uploading to database...",
-        status: "info",
-        duration: 2000,
-      });
-
       const res = await postImage(`${api_base_url}/add_image`, formdata);
 
       if (res.status === 200 || res.status === 201) {
         toaster.create({
-          title: "Success",
-          description: "AI Image generated and uploaded successfully!",
+          title: "Saved!",
+          description: "Image added to your gallery.",
           status: "success",
-          duration: 5000,
+          duration: 3000,
         });
-        setPrompt(""); // Clear prompt
         setIsUploadSuccessful(!isUploadSuccessful); // Trigger refresh
       }
-
     } catch (error) {
-      console.error("Generation failed:", error);
+      console.error("Failed to save generated image:", error);
       toaster.create({
-        title: "Generation Failed",
-        description: error.message || "Failed to generate image",
+        title: "Save Failed",
+        description: "Could not upload image to gallery.",
         status: "error",
-        duration: 5000,
+        duration: 4000,
       });
-    } finally {
-      setIsGenerating(false);
     }
   };
 
@@ -685,107 +629,7 @@ export default function Home() {
         <br></br>
 
         {/* AI Generation Section */}
-        <Box
-          w="100%"
-          maxW="600px"
-          p={6}
-          bg="gray.800"
-          borderRadius="xl"
-          border="1px solid"
-          borderColor="purple.500"
-          boxShadow="0 0 20px rgba(128, 90, 213, 0.2)"
-        >
-          <VStack spacing={4}>
-            <Heading size="md" color="purple.300" display="flex" alignItems="center" gap={2}>
-              <FiCpu /> AI Image Generation
-            </Heading>
-            <Text color="gray.400" fontSize="sm">
-              Create images dynamically using the Nano Banana API
-            </Text>
-
-            <Stack direction={{ base: "column", md: "row" }} w="100%" spacing={4}>
-              <NativeSelect.Root>
-                <NativeSelect.Field
-                  value={resolution}
-                  onChange={(e) => setResolution(e.target.value)}
-                  bg="gray.700"
-                  border="none"
-                  _focus={{ ring: 2, ringColor: "purple.500" }}
-                >
-                  <option value="1024x1024">1024x1024 (Square)</option>
-                  <option value="512x512">512x512 (Small Square)</option>
-                  <option value="640x640">640x640 (Medium Square)</option>
-                  <option value="1280x720">1280x720 (Landscape)</option>
-                  <option value="720x1280">720x1280 (Portrait)</option>
-                  <option value="1920x1080">1920x1080 (Full HD)</option>
-                  <option value="1366x768">1366x768 (Laptop)</option>
-                  <option value="1536x864">1536x864 (Large Laptop)</option>
-                  <option value="1440x900">1440x900 (Wide)</option>
-                  <option value="2048x2048">2048x2048 (Large Square)</option>
-                </NativeSelect.Field>
-                <NativeSelect.Indicator />
-              </NativeSelect.Root>
-
-              <NativeSelect.Root>
-                <NativeSelect.Field
-                  value={selectedModel}
-                  onChange={(e) => setSelectedModel(e.target.value)}
-                  bg="gray.700"
-                  border="none"
-                  _focus={{ ring: 2, ringColor: "purple.500" }}
-                >
-                  <option value="gemini-3-pro-image-preview">Gemini 3 Pro (Preview)</option>
-                  <option value="gemini-2.5-flash-image">Gemini 2.5 Flash</option>
-                </NativeSelect.Field>
-                <NativeSelect.Indicator />
-              </NativeSelect.Root>
-            </Stack>
-
-            <InputGroup size="lg">
-              <Input
-                placeholder="Describe the image you want to generate..."
-                value={prompt}
-                onChange={(e) => setPrompt(e.target.value)}
-                bg="gray.700"
-                border="none"
-                _focus={{ ring: 2, ringColor: "purple.500" }}
-                onKeyDown={(e) => {
-                  if (e.key === 'Enter' && !isGenerating) {
-                    handleGenerateAndUpload();
-                  }
-                }}
-              />
-            </InputGroup>
-            <Button
-              w="full"
-              colorScheme="purple"
-              bgGradient="linear(to-r, purple.500, blue.500)"
-              isLoading={isGenerating}
-              loadingText="Dreaming up your image..."
-              spinner={<Spinner size="sm" color="white" />}
-              onClick={handleGenerateAndUpload}
-              _hover={{
-                bgGradient: "linear(to-r, purple.600, blue.600)",
-                transform: "translateY(-2px)",
-                boxShadow: "lg"
-              }}
-              transition="all 0.2s"
-            >
-              Generate & Upload
-            </Button>
-
-            {isGenerating && (
-              <Center p={2}>
-                <VStack>
-                  <Spinner size="xl" color="purple.400" thickness="4px" speed="0.65s" emptyColor="gray.700" />
-                  <Text color="purple.300" fontSize="sm" animate={{ opacity: [0.5, 1, 0.5] }} transition={{ duration: 1.5, repeat: Infinity }}>
-                    Creating your masterpiece...
-                  </Text>
-                </VStack>
-              </Center>
-            )}
-          </VStack>
-        </Box>
+        <ImageChat onImageSave={handleChatImageSave} />
 
         <br></br>
         <Center>
@@ -933,8 +777,6 @@ export default function Home() {
                   maxW="300px"
                   position="relative"
                   borderRadius="xl"
-                  overflow="hidden"
-                  bg="gray.800"
                   overflow="hidden"
                   bg="gray.800"
                   cursor="default"
