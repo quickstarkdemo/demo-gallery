@@ -26,16 +26,16 @@ import {
     NumberInputStepper,
     NumberIncrementStepper,
     NumberDecrementStepper,
-    useToast,
     Divider,
     Code
 } from '@chakra-ui/react';
 import { FiPlay, FiSquare, FiActivity, FiServer } from 'react-icons/fi';
+import { useAppToaster } from '../hooks/useAppToaster';
 
 const API_BASE_URL = "https://api-images.quickstark.com/api/v1/kafka-demo";
 
 const KafkaDemo = () => {
-    const toast = useToast();
+    const { create: toast } = useAppToaster();
     const [status, setStatus] = useState(null);
     const [isLoading, setIsLoading] = useState(false);
     const [lastUpdated, setLastUpdated] = useState(null);
