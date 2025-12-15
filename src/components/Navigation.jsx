@@ -51,6 +51,17 @@ export default function Navigation() {
               Force Error
             </NavLink>
           </Button>
+
+          <Button margin={2}>
+            <NavLink
+              to="/kafka"
+              style={({ isActive }) => {
+                return isActive ? { color: "orange" } : { color: "gray" };
+              }}
+            >
+              Kafka Demo
+            </NavLink>
+          </Button>
         </Flex>
       </Flex>
     </Box>
