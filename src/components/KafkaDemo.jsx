@@ -10,19 +10,8 @@ import {
     SimpleGrid,
     VStack,
     HStack,
-    FormControl,
-    FormLabel,
-    Switch,
+    Field,
     Slider,
-    SliderTrack,
-    SliderFilledTrack,
-    SliderThumb,
-    NumberInput,
-    NumberInputField,
-    NumberInputStepper,
-    NumberIncrementStepper,
-    NumberDecrementStepper,
-    Divider,
     Code
 } from '@chakra-ui/react';
 import { FiPlay, FiSquare, FiActivity, FiServer } from 'react-icons/fi';
@@ -236,57 +225,57 @@ const KafkaDemo = () => {
                     </Flex>
 
                     <SimpleGrid columns={{ base: 1, md: 2 }} spacing={8}>
-                        <FormControl>
-                            <FormLabel color="gray.300">Latency Injection ({faultConfig.latency_ms}ms)</FormLabel>
-                            <Slider
+                        <Field.Root>
+                            <Field.Label color="gray.300">Latency Injection ({faultConfig.latency_ms}ms)</Field.Label>
+                            <Slider.Root
                                 min={0} max={2000} step={50}
-                                value={faultConfig.latency_ms}
-                                onChange={(v) => setFaultConfig(c => ({ ...c, latency_ms: v }))}
+                                value={[faultConfig.latency_ms]}
+                                onValueChange={(e) => setFaultConfig(c => ({ ...c, latency_ms: e.value[0] }))}
                             >
-                                <SliderTrack bg="gray.600"><SliderFilledTrack bg="orange.400" /></SliderTrack>
-                                <SliderThumb />
-                            </Slider>
+                                <Slider.Track bg="gray.600"><Slider.Range bg="orange.400" /></Slider.Track>
+                                <Slider.Thumb index={0} />
+                            </Slider.Root>
                             <Text fontSize="xs" color="gray.500" mt={1}>Artificial delay in processing</Text>
-                        </FormControl>
+                        </Field.Root>
 
-                        <FormControl>
-                            <FormLabel color="gray.300">Slow Consumer ({faultConfig.slow_consumer_ms}ms)</FormLabel>
-                            <Slider
+                        <Field.Root>
+                            <Field.Label color="gray.300">Slow Consumer ({faultConfig.slow_consumer_ms}ms)</Field.Label>
+                            <Slider.Root
                                 min={0} max={2000} step={50}
-                                value={faultConfig.slow_consumer_ms}
-                                onChange={(v) => setFaultConfig(c => ({ ...c, slow_consumer_ms: v }))}
+                                value={[faultConfig.slow_consumer_ms]}
+                                onValueChange={(e) => setFaultConfig(c => ({ ...c, slow_consumer_ms: e.value[0] }))}
                             >
-                                <SliderTrack bg="gray.600"><SliderFilledTrack bg="orange.400" /></SliderTrack>
-                                <SliderThumb />
-                            </Slider>
+                                <Slider.Track bg="gray.600"><Slider.Range bg="orange.400" /></Slider.Track>
+                                <Slider.Thumb index={0} />
+                            </Slider.Root>
                             <Text fontSize="xs" color="gray.500" mt={1}>Simulate consumer lag</Text>
-                        </FormControl>
+                        </Field.Root>
 
-                        <FormControl>
-                            <FormLabel color="gray.300">Drop Probability ({(faultConfig.drop_probability * 100).toFixed(0)}%)</FormLabel>
-                            <Slider
+                        <Field.Root>
+                            <Field.Label color="gray.300">Drop Probability ({(faultConfig.drop_probability * 100).toFixed(0)}%)</Field.Label>
+                            <Slider.Root
                                 min={0} max={1} step={0.05}
-                                value={faultConfig.drop_probability}
-                                onChange={(v) => setFaultConfig(c => ({ ...c, drop_probability: v }))}
+                                value={[faultConfig.drop_probability]}
+                                onValueChange={(e) => setFaultConfig(c => ({ ...c, drop_probability: e.value[0] }))}
                             >
-                                <SliderTrack bg="gray.600"><SliderFilledTrack bg="red.400" /></SliderTrack>
-                                <SliderThumb />
-                            </Slider>
+                                <Slider.Track bg="gray.600"><Slider.Range bg="red.400" /></Slider.Track>
+                                <Slider.Thumb index={0} />
+                            </Slider.Root>
                             <Text fontSize="xs" color="gray.500" mt={1}>Randomly drop messages</Text>
-                        </FormControl>
+                        </Field.Root>
 
-                        <FormControl>
-                            <FormLabel color="gray.300">Duplicate Ratio ({(faultConfig.duplicate_ratio * 100).toFixed(0)}%)</FormLabel>
-                            <Slider
+                        <Field.Root>
+                            <Field.Label color="gray.300">Duplicate Ratio ({(faultConfig.duplicate_ratio * 100).toFixed(0)}%)</Field.Label>
+                            <Slider.Root
                                 min={0} max={1} step={0.05}
-                                value={faultConfig.duplicate_ratio}
-                                onChange={(v) => setFaultConfig(c => ({ ...c, duplicate_ratio: v }))}
+                                value={[faultConfig.duplicate_ratio]}
+                                onValueChange={(e) => setFaultConfig(c => ({ ...c, duplicate_ratio: e.value[0] }))}
                             >
-                                <SliderTrack bg="gray.600"><SliderFilledTrack bg="purple.400" /></SliderTrack>
-                                <SliderThumb />
-                            </Slider>
+                                <Slider.Track bg="gray.600"><Slider.Range bg="purple.400" /></Slider.Track>
+                                <Slider.Thumb index={0} />
+                            </Slider.Root>
                             <Text fontSize="xs" color="gray.500" mt={1}>Re-emit existing messages</Text>
-                        </FormControl>
+                        </Field.Root>
                     </SimpleGrid>
                 </Box>
 
