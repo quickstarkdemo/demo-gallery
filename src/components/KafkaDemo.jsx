@@ -8,10 +8,6 @@ import {
     Text,
     Badge,
     SimpleGrid,
-    Stat,
-    StatLabel,
-    StatNumber,
-    StatHelpText,
     VStack,
     HStack,
     FormControl,
@@ -211,23 +207,23 @@ const KafkaDemo = () => {
 
                 {/* Metrics Grid */}
                 <SimpleGrid columns={{ base: 1, md: 3 }} spacing={6}>
-                    <Stat bg="gray.700" p={5} borderRadius="lg" shadow="md" color="white">
-                        <StatLabel color="gray.300">Messages Produced</StatLabel>
-                        <StatNumber fontSize="3xl">{status?.metrics?.produced || 0}</StatNumber>
-                        <StatHelpText>Telemetry Raw</StatHelpText>
-                    </Stat>
+                    <Box bg="gray.700" p={5} borderRadius="lg" shadow="md" color="white">
+                        <Text color="gray.300" fontWeight="medium" fontSize="sm">Messages Produced</Text>
+                        <Text fontSize="3xl" fontWeight="bold" my={1}>{status?.metrics?.produced || 0}</Text>
+                        <Text fontSize="sm" color="gray.400">Telemetry Raw</Text>
+                    </Box>
 
-                    <Stat bg="gray.700" p={5} borderRadius="lg" shadow="md" color="white">
-                        <StatLabel color="gray.300">Analytics Consumed</StatLabel>
-                        <StatNumber fontSize="3xl">{status?.metrics?.analytics_consumed || 0}</StatNumber>
-                        <StatHelpText>Enriched Data</StatHelpText>
-                    </Stat>
+                    <Box bg="gray.700" p={5} borderRadius="lg" shadow="md" color="white">
+                        <Text color="gray.300" fontWeight="medium" fontSize="sm">Analytics Consumed</Text>
+                        <Text fontSize="3xl" fontWeight="bold" my={1}>{status?.metrics?.analytics_consumed || 0}</Text>
+                        <Text fontSize="sm" color="gray.400">Enriched Data</Text>
+                    </Box>
 
-                    <Stat bg="gray.700" p={5} borderRadius="lg" shadow="md" color="white">
-                        <StatLabel color="gray.300">Alerts Processed</StatLabel>
-                        <StatNumber fontSize="3xl">{status?.metrics?.alerts_consumed || 0}</StatNumber>
-                        <StatHelpText>Critical Events</StatHelpText>
-                    </Stat>
+                    <Box bg="gray.700" p={5} borderRadius="lg" shadow="md" color="white">
+                        <Text color="gray.300" fontWeight="medium" fontSize="sm">Alerts Processed</Text>
+                        <Text fontSize="3xl" fontWeight="bold" my={1}>{status?.metrics?.alerts_consumed || 0}</Text>
+                        <Text fontSize="sm" color="gray.400">Critical Events</Text>
+                    </Box>
                 </SimpleGrid>
 
                 {/* Fault Injection Panel */}
