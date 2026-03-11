@@ -92,6 +92,10 @@ datadogRum.setGlobalContextProperty('userImagePreferences', {
   }
 });
 
+datadogRum.setGlobalContextProperty('xom_app_id', '40712');
+datadogRum.setGlobalContextProperty('xom_app_name', 'snowflakeanalyticsplatform');
+datadogRum.setGlobalContextProperty('xom_env', 'dev');
+
 // Add a test log to verify logs are working
 datadogLogs.logger.info('Application initialized', { feature: 'initialization' });
 
